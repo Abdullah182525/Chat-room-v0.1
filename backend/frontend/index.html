@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Hey, and welcome to chat room website, to join a chat room type in the ID</h1>
+    <input id="input">
+    <h5>name:</h5>
+    <input id="input2">
+    <button id="button">Join</button>
+    <script>
+        let input = document.getElementById('input')
+        let button = document.getElementById('button')
+        let input2 = document.getElementById('input2')
+
+
+        button.onclick = function(){
+            let namevalue = input2.value
+            let roomidvalue = input.value
+            if(namevalue && roomidvalue){
+                fetch(`/API/Rooms/Request-Room-Enter`,{method:'POST',body:JSON.stringify({RoomID:roomidvalue,Name:namevalue}),headers:{'Content-Type':'application/json'}})
+                .then(response => response.json())
+                .then(function(data){
+                    let AuthorizationKey = data
+                    document.cookie = `_authroom=${AuthorizationKey}`
+                    location.replace(`/Room/${roomidvalue}`)
+                })
+            }
+        }
+    </script>
+</body>
+</html>

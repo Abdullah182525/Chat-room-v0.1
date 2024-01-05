@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .message_container{
+            color:gray;
+        }
+    </style>
+</head>
+<body>
+    <table style="width:100%">
+            <tr>
+                <th>User</th>
+                <th>Message</th>
+            </tr>
+            <tbody id="message_add">
+                <tr class="message_container">
+                    <th>Server</th>
+                    <th>Welcome!</th>
+                </tr>
+            </tbody>
+    </table>
+    <h3>type your message: </h3>
+    <input id="MessageInput">
+    <button id="MessageButton">Send</button>
+    <script>
+        let message_add = document.getElementById('message_add')
+        let MessageInput = document.getElementById('MessageInput')
+        let MessageButton = document.getElementById('MessageButton')
+
+        let RoomID = location.pathname.slice(6,location.pathname.length)
+        let SessionKey
+        fetch(`/API/Rooms/Request-SessionID`,{method:'POST',body:JSON.stringify({'RoomID':RoomID,AuthKey:document.cookie.split(';').map(item => item.split('=')).reduce((acc, [k, v]) => (acc[k.trim().replace('"', '')] = v) && acc, {})['_authroom']}),headers:{'Content-Type':'application/json'}})
+        .then(response => response.json())
+        .then(function(data){
+            SessionKey = data
+            
+        })
+    </script>
+</body>
+</html>
