@@ -8,9 +8,10 @@ let RoomID_To_ChatID = {}
 let Authorization_Keys_For_Rooms = {}
 let Session_Keys_For_Rooms = {}
 
+const http = require('http')
+const WebSocket = require('ws')
 const express = require('express')
 const server = express()    
-server.listen(80)
 server.use(express.json())
 server.use(express.urlencoded({extended:true}))
 
@@ -71,8 +72,83 @@ server.post('/API/Rooms/Request-SessionID',function(req,res){
             let UserID = AuthInfo['UserID']
             let NewSessionID = Math.floor((Math.random() * 10000) + 1)
             Session_Keys_For_Rooms[NewSessionID] = {'RoomID':RoomID,'UserID':UserID}
-            res.send(String(NewSessionID))
+            res.cookie('_SessionKey',NewSessionID)
+            res.send(true)
         }
     }
 })
 
+const httpserver = http.createServer(server).listen(80)
+
+let MessagesWebSocket = new WebSocket.Server({server:httpserver})
+let MessagesWebSocketClients = new Map()
+
+function BroadcastNewMessage(ChatID,RoomID){
+    MessagesWebSocketClients.forEach(function(v,k){
+        let valueRoomID = v['RoomID']
+        if(valueRoomID == RoomID){
+            let Chat = ChatDB[ChatID]
+            let ClientChat = []
+            for(let x = 0;x<Chat.length;x++){
+                let Chatindex = Chat[x]
+                ClientChat.push({UserID:UserDB[Chatindex['UserID']],Message:Chatindex['Message']})
+            }
+            k.send(JSON.stringify(ClientChat))
+        }
+    })
+}
+
+function SingleCastMessage(ws,ChatID,RoomID){
+    let Chat = ChatDB[ChatID]
+    let ClientChat = []
+    for(let x = 0;x<Chat.length;x++){
+        let Chatindex = Chat[x]
+        ClientChat.push({UserID:UserDB[Chatindex['UserID']],Message:Chatindex['Message']})
+    }
+    ws.send(JSON.stringify(ClientChat))
+}
+
+MessagesWebSocket.on('connection',function(ws,req){
+    if(req.url == '/rooms/messages-ws'){
+        if(req.headers.cookie != undefined){
+            let cookies = req.headers.cookie.split(';').map(item => item.split('=')).reduce((acc, [k, v]) => (acc[k.trim().replace('"', '')] = v) && acc, {});
+            if(cookies['_SessionKey']){
+                let SessionKey = Number(cookies['_SessionKey'])
+                if(Session_Keys_For_Rooms[SessionKey]){
+                    let SessionInfo = Session_Keys_For_Rooms[SessionKey]
+                    let RoomID = SessionInfo['RoomID']
+                    let UserID = SessionInfo['UserID']
+                    MessagesWebSocketClients.set(ws,{'UserID':UserID,'RoomID':RoomID})
+                    let ChatID = RoomID_To_ChatID[RoomID]
+                    SingleCastMessage(ws,ChatID,RoomID)
+                }else{
+                    ws.close()
+                    console.log('hey4')
+                }
+            }else{
+                ws.close()
+                console.log('hey3')
+            }
+        }else{
+            ws.close()
+            console.log('hey2')
+        }
+    }else{
+        ws.close()
+        console.log('hey')
+    }
+    ws.on('message',function(data){
+        data = data.toString()
+        let Info = MessagesWebSocketClients.get(ws)
+        let RoomID = Number(Info['RoomID'])
+        let UserID = Number(Info['UserID'])
+        let UserName = UserDB[UserID]
+        let ChatID = RoomID_To_ChatID[RoomID]
+        let Chat = ChatDB[ChatID]
+        console.log(Chat)
+        Chat.push({'UserID':UserID,'Message':data})
+        console.log(Chat)
+        ChatDB[ChatID] = Chat
+        BroadcastNewMessage(ChatID,RoomID)
+    })
+});

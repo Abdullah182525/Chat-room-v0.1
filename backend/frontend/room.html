@@ -17,10 +17,7 @@
                 <th>Message</th>
             </tr>
             <tbody id="message_add">
-                <tr class="message_container">
-                    <th>Server</th>
-                    <th>Welcome!</th>
-                </tr>
+
             </tbody>
     </table>
     <h3>type your message: </h3>
@@ -31,13 +28,37 @@
         let MessageInput = document.getElementById('MessageInput')
         let MessageButton = document.getElementById('MessageButton')
 
+
+        function MesssagesFunction(){
+            let MessagesWebSocket = new WebSocket(`ws://${location.hostname}/rooms/messages-ws`)
+            MessagesWebSocket.onopen = function(){
+
+                MessageButton.onclick = function(){
+                    let MessageData = MessageInput.value
+                    MessagesWebSocket.send(MessageData)
+                }
+                MessagesWebSocket.addEventListener('message',function(e){
+                    message_add.innerHTML = ''
+                    let MessagesData = JSON.parse(e.data)
+                    console.log(MessagesData)
+                    for(let x = 0;x<MessagesData.length;x++){
+                        let Message = MessagesData[x]
+                        let _html = `
+                        <tr class="message_container">
+                    <th>${Message['UserID']}</th>
+                    <th>${Message['Message']}</th>
+                </tr>
+                        `
+                        message_add.innerHTML += _html
+                    }
+                })
+            }   
+        }
         let RoomID = location.pathname.slice(6,location.pathname.length)
-        let SessionKey
         fetch(`/API/Rooms/Request-SessionID`,{method:'POST',body:JSON.stringify({'RoomID':RoomID,AuthKey:document.cookie.split(';').map(item => item.split('=')).reduce((acc, [k, v]) => (acc[k.trim().replace('"', '')] = v) && acc, {})['_authroom']}),headers:{'Content-Type':'application/json'}})
         .then(response => response.json())
-        .then(function(data){
-            SessionKey = data
-            
+        .then(function(data){   
+            MesssagesFunction()
         })
     </script>
 </body>
