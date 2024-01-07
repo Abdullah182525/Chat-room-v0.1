@@ -1,4 +1,4 @@
-<h1>Welcome to Chat Room project</h1>
+<h1>Welcome to Chat Room project v0.1</h1>
 <h2>i've made this to help people who doesnt know how to make chat projects</h2>
 <h2>you can learn from this to achieve your desired app</h2>
 
